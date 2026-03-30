@@ -8,8 +8,9 @@ venv/
 # Streamlit
 .streamlit/
 
-# Data files
+# Data files (except the blank template)
 *.csv
+!ConsolaGoogle-EnBlanco.csv
 *.xls
 *.xlsx
 
