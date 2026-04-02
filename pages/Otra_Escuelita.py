@@ -22,6 +22,9 @@ NOMBRE_ESCUELA_OU = "OTRA ESCUELITA"
 st.markdown(
     """
     <style>
+    /* ── Reducir espacio superior ── */
+    .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; }
+
     /* ── Ocultar footer y menú de Streamlit ── */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
@@ -53,12 +56,11 @@ st.markdown(
         background-color: #2e8b57;
         color: #ffffff !important;
         border: none;
-        padding: 0.55rem 2rem;
+        padding: 0.6rem 2rem;
         font-weight: 700;
         font-size: 1rem;
         border-radius: 0.5rem;
         width: 100%;
-        margin-top: 0.5rem;
     }
     div.stButton > button:hover { background-color: #257a4a; }
     div.stButton > button:focus { outline: 3px solid rgba(46,139,87,0.4); outline-offset: 2px; }
@@ -66,7 +68,6 @@ st.markdown(
     /* ── Responsivo: en pantallas pequeñas apilar columnas ── */
     @media (max-width: 768px) {
         [data-testid="column"] { min-width: 100% !important; }
-        div.stButton > button { font-size: 0.95rem; }
     }
     </style>
     """,
@@ -413,7 +414,7 @@ def build_output(
     return df_out, summary, missing_birth_rows
 
 
-st.title(f"Generador de CSV — {NOMBRE_ESCUELA_OU}")
+st.markdown(f"### Generador de CSV — {NOMBRE_ESCUELA_OU}")
 
 col_left, col_right = st.columns([1, 1], gap="large")
 
@@ -464,7 +465,8 @@ with col_right:
     else:
         st.caption("Se usará la fecha de nacimiento (dd-mm-yyyy).")
 
-    st.divider()
+_, col_btn, _ = st.columns([1, 2, 1])
+with col_btn:
     process = st.button("Procesar", use_container_width=True)
 
 if process:
