@@ -292,11 +292,11 @@ def build_output(
 
     # Deduplicate by email
     def make_email(row):
-        local = row["run_clean"]
+        local = str(row["run_clean"])
         if incluir_dv:
-            local += row["dv"]
+            local += str(row["dv"])
         if sufijo_rut:
-            local += sufijo_rut
+            local += str(sufijo_rut)
         return f"{local}@{domain}"
 
     work["email"] = work.apply(make_email, axis=1)
