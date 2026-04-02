@@ -238,6 +238,10 @@ def build_output(
     domain: str,
     escuela_ou: str,
     sufijo_rut: str = "",
+    incluir_dv: bool = False,
+    modo_password: str = "Fecha de nacimiento",
+    col_password_sige: str = "",
+    password_fija: str = "",
 ):
     # Normalize SIGE columns
     required = {
@@ -288,11 +292,19 @@ def build_output(
     work["run_clean"] = work["run"].apply(clean_run)
     work = work[work["run_clean"] != ""].copy()
 
+    # Clean DV
+    work["dv"] = work["dv"].astype(str).str.strip().str.lower().replace("nan", "", regex=False)
+
     # Deduplicate by email
-    if sufijo_rut:
-        work["email"] = work["run_clean"].apply(lambda r: f"{r}{sufijo_rut}@{domain}")
-    else:
-        work["email"] = work["run_clean"].apply(lambda r: f"{r}@{domain}")
+    def make_email(row):
+        local = row["run_clean"]
+        if incluir_dv:
+            local += row["dv"]
+        if sufijo_rut:
+            local += sufijo_rut
+        return f"{local}@{domain}"
+
+    work["email"] = work.apply(make_email, axis=1)
     dup_count = int(work.duplicated("email").sum())
     work = work.drop_duplicates("email", keep="first")
 
@@ -302,9 +314,20 @@ def build_output(
         lambda r: f"/ESCUELAS/{escuela_ou}/{r['ano']} Estudiantes/{r['course']}", axis=1
     )
 
-    # Birth date -> password
-    birth_dates = work["fecha_nacimiento"].apply(parse_date)
-    work["password"] = birth_dates.apply(lambda d: d.strftime("%d-%m-%Y") if d else "")
+    # Password
+    if modo_password == "Fecha de nacimiento":
+        birth_dates = work["fecha_nacimiento"].apply(parse_date)
+        work["password"] = birth_dates.apply(lambda d: d.strftime("%d-%m-%Y") if d else "")
+    elif modo_password == "Columna del SIGE" and col_password_sige:
+        sige_col = find_column(work.columns, col_password_sige)
+        if sige_col:
+            work["password"] = work[sige_col].astype(str).str.strip().replace("nan", "", regex=False)
+        else:
+            work["password"] = ""
+    elif modo_password == "Texto fijo":
+        work["password"] = password_fija
+    else:
+        work["password"] = ""
     missing_birth = int((work["password"] == "").sum())
     missing_birth_rows = work.loc[work["password"] == ""].copy()
 
@@ -416,8 +439,27 @@ with col_right:
     st.caption("Se usará como: /ESCUELAS/**tu texto aquí**/2026 Estudiantes/1A")
     domain_input = st.text_input("Dominio de correo", value="")
     sufijo_input = st.text_input("Sufijo al RUT (opcional)", value="", placeholder="Ej: e80")
-    st.caption("Sin sufijo: 12345678@dominio.cl — Con sufijo: 12345678e80@dominio.cl")
-    st.caption("La contraseña se asigna siempre como fecha de nacimiento (dd-mm-yyyy).")
+    incluir_dv_input = st.checkbox("Incluir el DV en el correo")
+    st.caption("Formato resultante: RUT + DV (si activo) + Sufijo (si hay) @ dominio")
+    st.divider()
+    modo_password_input = st.radio(
+        "Contraseña",
+        ["Fecha de nacimiento", "Columna del SIGE", "Texto fijo"],
+        horizontal=True,
+    )
+    col_password_input = ""
+    password_fija_input = ""
+    if modo_password_input == "Columna del SIGE":
+        if sige_file:
+            try:
+                _cols = list(read_sige(sige_file.getvalue()).columns)
+                col_password_input = st.selectbox("Columna del SIGE para contraseña", _cols)
+            except Exception:
+                col_password_input = st.text_input("Nombre de la columna SIGE", value="Run", placeholder="Ej: Run")
+        else:
+            st.caption("Sube el archivo SIGE para ver las columnas disponibles.")
+    elif modo_password_input == "Texto fijo":
+        password_fija_input = st.text_input("Contraseña para todos", value="", placeholder="Ej: Escuelita87654321")
     st.caption("No se fuerza el cambio de contraseña al primer inicio.")
     st.caption("Las cuentas en SIGE se reactivan (estado Active) al cargar el CSV.")
 
@@ -446,6 +488,10 @@ if process:
         st.stop()
 
     sufijo_rut = sufijo_input.strip()
+    incluir_dv = incluir_dv_input
+    modo_password = modo_password_input
+    col_password_sige = col_password_input.strip()
+    password_fija = password_fija_input.strip()
     domain = domain_input.strip()
     if not domain:
         domain = extract_domain_from_google(df_google)
@@ -475,6 +521,10 @@ if process:
             domain,
             escuela_ou,
             sufijo_rut,
+            incluir_dv,
+            modo_password,
+            col_password_sige,
+            password_fija,
         )
     except Exception as e:
         st.error(str(e))
