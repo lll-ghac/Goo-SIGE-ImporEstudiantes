@@ -174,10 +174,10 @@ def clean_run(value) -> str:
 
 
 def build_course(row) -> str:
-    cod_tipo = row["cod_tipo_ensenanza"]
-    cod_grado = row["cod_grado"]
-    desc = row["desc_grado"]
-    letra = row["letra_curso"].strip().upper()
+    cod_tipo = str(row["cod_tipo_ensenanza"])
+    cod_grado = str(row["cod_grado"])
+    desc = str(row["desc_grado"])
+    letra = str(row["letra_curso"]).strip().upper()
 
     if cod_tipo == "10":
         desc_norm = normalize_text(desc)
@@ -324,7 +324,7 @@ def build_output(
         email = row["email"].lower()
         org_unit = row["org_unit"]
         first_name = row["nombres"]
-        last_name = (row["apellido_paterno"] + " " + row["apellido_materno"]).strip()
+        last_name = (str(row["apellido_paterno"]) + " " + str(row["apellido_materno"])).strip()
         password = row["password"]
 
         exists = email in google_map
