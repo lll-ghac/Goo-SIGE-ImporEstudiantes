@@ -421,63 +421,52 @@ def build_output(
 
 st.title(f"Generador de CSV — {NOMBRE_ESCUELA_OU}")
 
-st.markdown(
-    "Sube el archivo de Google, la nómina SIGE y descarga el CSV listo para carga masiva."
-)
+col_left, col_right = st.columns([1, 1])
 
-# ── Sección 1: Archivos ───────────────────────────────────────────────────────
-st.subheader("Archivos")
-col_left, col_right = st.columns(2)
 with col_left:
+    st.subheader("Archivos")
     google_file = st.file_uploader("Consola de GOOGLE (CSV de usuarios)", type=["csv"], key="google")
-with col_right:
     sige_file = st.file_uploader("Archivo SIGE (HTML .xls)", type=["xls", "xlsx", "html"], key="sige")
 
-st.divider()
+with col_right:
+    st.subheader("Configuración")
 
-# ── Sección 2: Configuración de correo ────────────────────────────────────────
-st.subheader("Configuración de correo")
-c1, c2, c3, c4 = st.columns([3, 2, 2, 1])
-with c1:
     escuela_input = st.text_input("Unidad educativa en la OU", value=NOMBRE_ESCUELA_OU, placeholder="Ej: E-89 ESCUELA OTRA")
     st.caption("/ESCUELAS/**tu texto**/2026 Estudiantes/1A")
-with c2:
-    domain_input = st.text_input("Dominio de correo", value="", placeholder="Ej: colegio.cl")
-with c3:
-    sufijo_input = st.text_input("Sufijo al RUT (opcional)", value="", placeholder="Ej: e80")
-    st.caption("12345678**e80**@dominio.cl")
-with c4:
-    st.markdown("<br>", unsafe_allow_html=True)
-    incluir_dv_input = st.checkbox("Incluir DV")
-    st.caption("12345678**k**@dominio")
 
-st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        domain_input = st.text_input("Dominio de correo", value="", placeholder="Ej: colegio.cl")
+    with c2:
+        sufijo_input = st.text_input("Sufijo al RUT (opcional)", value="", placeholder="Ej: e80")
 
-# ── Sección 3: Contraseña ─────────────────────────────────────────────────────
-st.subheader("Contraseña")
-c_pw1, c_pw2 = st.columns([2, 3])
-with c_pw1:
-    modo_password_input = st.radio(
-        "Origen de la contraseña",
-        ["Fecha de nacimiento", "Columna del SIGE", "Texto fijo"],
-    )
-with c_pw2:
-    col_password_input = ""
-    password_fija_input = ""
-    if modo_password_input == "Columna del SIGE":
-        if sige_file:
-            try:
-                _cols = list(read_sige(sige_file.getvalue()).columns)
-                col_password_input = st.selectbox("Columna del SIGE para contraseña", _cols)
-            except Exception:
-                col_password_input = st.text_input("Nombre de la columna SIGE", value="Run", placeholder="Ej: Run")
+    incluir_dv_input = st.checkbox("Incluir DV en el correo")
+    st.caption("Formato: RUT + DV (si activo) + Sufijo (si hay) @ dominio")
+
+    st.divider()
+
+    c_pw1, c_pw2 = st.columns([2, 3])
+    with c_pw1:
+        modo_password_input = st.radio(
+            "Contraseña",
+            ["Fecha de nacimiento", "Columna del SIGE", "Texto fijo"],
+        )
+    with c_pw2:
+        col_password_input = ""
+        password_fija_input = ""
+        if modo_password_input == "Columna del SIGE":
+            if sige_file:
+                try:
+                    _cols = list(read_sige(sige_file.getvalue()).columns)
+                    col_password_input = st.selectbox("Columna del SIGE", _cols)
+                except Exception:
+                    col_password_input = st.text_input("Nombre columna SIGE", value="Run")
+            else:
+                st.info("Sube el SIGE para ver las columnas.")
+        elif modo_password_input == "Texto fijo":
+            password_fija_input = st.text_input("Contraseña para todos", value="", placeholder="Ej: Escuelita87654321")
         else:
-            st.info("Sube el archivo SIGE para ver las columnas disponibles.")
-    elif modo_password_input == "Texto fijo":
-        password_fija_input = st.text_input("Contraseña para todos", value="", placeholder="Ej: Escuelita87654321")
-    else:
-        st.caption("Se usará la fecha de nacimiento de cada estudiante (dd-mm-yyyy).")
-    st.caption("No se fuerza el cambio de contraseña al primer inicio. Las cuentas suspendidas se reactivan.")
+            st.caption("Fecha de nacimiento de cada estudiante (dd-mm-yyyy).")
 
 process = st.button("Procesar")
 
