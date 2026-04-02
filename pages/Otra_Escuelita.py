@@ -293,7 +293,7 @@ def build_output(
     work = work[work["run_clean"] != ""].copy()
 
     # Clean DV
-    work["dv"] = work["dv"].astype(str).str.strip().str.lower().replace("nan", "", regex=False)
+    work["dv"] = work["dv"].fillna("").astype(str).str.strip().str.lower().replace("nan", "", regex=False)
 
     # Deduplicate by email
     def make_email(row):
