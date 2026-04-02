@@ -474,65 +474,67 @@ if process:
         st.error("Debes subir el archivo de Google y el archivo SIGE.")
         st.stop()
 
-    try:
-        df_google = read_csv_any(google_file.getvalue())
-    except Exception as e:
-        st.error(f"Error al leer archivo Google: {e}")
-        st.stop()
+    with st.spinner("Procesando, por favor espera..."):
 
-    try:
-        df_sige = read_sige(sige_file.getvalue())
-    except Exception as e:
-        st.error(f"Error al leer archivo SIGE: {e}")
-        st.stop()
+        try:
+            df_google = read_csv_any(google_file.getvalue())
+        except Exception as e:
+            st.error(f"Error al leer archivo Google: {e}")
+            st.stop()
 
-    escuela_ou = escuela_input.strip()
-    if not escuela_ou:
-        st.error("Debes ingresar el nombre de la unidad educativa en la OU.")
-        st.stop()
+        try:
+            df_sige = read_sige(sige_file.getvalue())
+        except Exception as e:
+            st.error(f"Error al leer archivo SIGE: {e}")
+            st.stop()
 
-    sufijo_rut = sufijo_input.strip()
-    incluir_dv = incluir_dv_input
-    modo_password = modo_password_input
-    col_password_sige = col_password_input.strip()
-    password_fija = password_fija_input.strip()
-    domain = domain_input.strip()
-    if not domain:
-        domain = extract_domain_from_google(df_google)
+        escuela_ou = escuela_input.strip()
+        if not escuela_ou:
+            st.error("Debes ingresar el nombre de la unidad educativa en la OU.")
+            st.stop()
 
-    if not domain:
-        st.error("No se pudo detectar el dominio de correo. Ingresa el dominio manualmente.")
-        st.stop()
+        sufijo_rut = sufijo_input.strip()
+        incluir_dv = incluir_dv_input
+        modo_password = modo_password_input
+        col_password_sige = col_password_input.strip()
+        password_fija = password_fija_input.strip()
+        domain = domain_input.strip()
+        if not domain:
+            domain = extract_domain_from_google(df_google)
 
-    try:
-        template_cols = load_template_columns(None)
-    except Exception as e:
-        st.error(
-            "No se pudo leer ConsolaGoogle-EnBlanco.csv desde la carpeta de la app. "
-            "Asegúrate de que exista junto a app.py."
-        )
-        st.stop()
+        if not domain:
+            st.error("No se pudo detectar el dominio de correo. Ingresa el dominio manualmente.")
+            st.stop()
 
-    if not template_cols:
-        st.error("No se pudieron obtener las columnas de la plantilla.")
-        st.stop()
+        try:
+            template_cols = load_template_columns(None)
+        except Exception as e:
+            st.error(
+                "No se pudo leer ConsolaGoogle-EnBlanco.csv desde la carpeta de la app. "
+                "Asegúrate de que exista junto a app.py."
+            )
+            st.stop()
 
-    try:
-        df_out, summary, missing_birth_rows = build_output(
-            df_sige,
-            df_google,
-            template_cols,
-            domain,
-            escuela_ou,
-            sufijo_rut,
-            incluir_dv,
-            modo_password,
-            col_password_sige,
-            password_fija,
-        )
-    except Exception as e:
-        st.error(str(e))
-        st.stop()
+        if not template_cols:
+            st.error("No se pudieron obtener las columnas de la plantilla.")
+            st.stop()
+
+        try:
+            df_out, summary, missing_birth_rows = build_output(
+                df_sige,
+                df_google,
+                template_cols,
+                domain,
+                escuela_ou,
+                sufijo_rut,
+                incluir_dv,
+                modo_password,
+                col_password_sige,
+                password_fija,
+            )
+        except Exception as e:
+            st.error(str(e))
+            st.stop()
 
     if not missing_birth_rows.empty:
         st.error("Faltan fechas de nacimiento en la nómina SIGE. Corrige estas filas y vuelve a ejecutar.")
