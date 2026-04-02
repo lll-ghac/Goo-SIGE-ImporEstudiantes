@@ -68,6 +68,24 @@ st.markdown(
         outline: 3px solid rgba(46, 139, 87, 0.35);
         outline-offset: 2px;
     }
+
+    /* ── Barra de progreso animada ── */
+    @keyframes loading {
+        0%   { background-position: 200% center; }
+        100% { background-position: -200% center; }
+    }
+    .loading-bar {
+        background: linear-gradient(90deg, #2e8b57 0%, #57c47a 40%, #2e8b57 60%, #1a5c38 100%);
+        background-size: 200% auto;
+        animation: loading 1.4s linear infinite;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 1rem;
+        text-align: center;
+        padding: 0.6rem 1rem;
+        border-radius: 0.5rem;
+        letter-spacing: 0.03em;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -405,11 +423,17 @@ with col_right:
     st.caption("Las cuentas en SIGE se reactivan (estado Active) al cargar el CSV.")
 
 process = st.button("Procesar")
+status_placeholder = st.empty()
 
 if process:
     if not google_file or not sige_file:
         st.error("Debes subir el archivo de Google y el archivo SIGE.")
         st.stop()
+
+    status_placeholder.markdown(
+        '<div class="loading-bar">⏳ Procesando, por favor espera...</div>',
+        unsafe_allow_html=True,
+    )
 
     try:
         df_google = read_csv_any(google_file.getvalue())
@@ -452,8 +476,11 @@ if process:
             domain,
         )
     except Exception as e:
+        status_placeholder.empty()
         st.error(str(e))
         st.stop()
+
+    status_placeholder.empty()
 
     if not missing_birth_rows.empty:
         st.error("Faltan fechas de nacimiento en la nómina SIGE. Corrige estas filas y vuelve a ejecutar.")
