@@ -290,7 +290,7 @@ def build_output(
 
     # Deduplicate by email
     if sufijo_rut:
-        work["email"] = work["run_clean"].apply(lambda r: f"{r}+{sufijo_rut}@{domain}")
+        work["email"] = work["run_clean"].apply(lambda r: f"{r}{sufijo_rut}@{domain}")
     else:
         work["email"] = work["run_clean"].apply(lambda r: f"{r}@{domain}")
     dup_count = int(work.duplicated("email").sum())
@@ -416,7 +416,7 @@ with col_right:
     st.caption("Se usará como: /ESCUELAS/**tu texto aquí**/2026 Estudiantes/1A")
     domain_input = st.text_input("Dominio de correo", value="")
     sufijo_input = st.text_input("Sufijo al RUT (opcional)", value="", placeholder="Ej: e80")
-    st.caption("Sin sufijo: 12345678@dominio.cl — Con sufijo: 12345678+e80@dominio.cl")
+    st.caption("Sin sufijo: 12345678@dominio.cl — Con sufijo: 12345678e80@dominio.cl")
     st.caption("La contraseña se asigna siempre como fecha de nacimiento (dd-mm-yyyy).")
     st.caption("No se fuerza el cambio de contraseña al primer inicio.")
     st.caption("Las cuentas en SIGE se reactivan (estado Active) al cargar el CSV.")
