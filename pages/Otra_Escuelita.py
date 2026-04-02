@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-st.set_page_config(page_title="Otra Escuelita", layout="wide")
+st.set_page_config(page_title="Otra Escuelita", layout="wide", initial_sidebar_state="collapsed")
 
 # La plantilla está en la carpeta raíz de la app (un nivel arriba de pages/)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,57 +22,51 @@ NOMBRE_ESCUELA_OU = "OTRA ESCUELITA"
 st.markdown(
     """
     <style>
+    /* ── Ocultar footer y menú de Streamlit ── */
     #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Oculta textos en inglés del cargador de archivos */
-    div[data-testid="stFileUploaderDropzoneInstructions"] > div {
-        display: none;
-    }
-    div[data-testid="stFileUploaderDropzoneInstructions"] small {
-        display: none;
-    }
+    /* ── Textos en español en el cargador de archivos ── */
+    div[data-testid="stFileUploaderDropzoneInstructions"] > div { display: none; }
+    div[data-testid="stFileUploaderDropzoneInstructions"] small { display: none; }
     div[data-testid="stFileUploaderDropzoneInstructions"]::after {
-        content: "Arrastra y suelta el archivo aquí";
-        color: #e6e6e6;
-        font-size: 0.9rem;
+        content: "Arrastra y suelta aquí";
+        font-size: 0.85rem;
         display: block;
-    }
-    div[data-testid="stFileUploaderDropzoneInstructions"]::before {
-        content: "O selecciona un archivo";
-        color: #bdbdbd;
-        font-size: 0.8rem;
-        display: block;
-        margin-top: 0.25rem;
+        opacity: 0.75;
     }
     div[data-testid="stFileUploader"] button {
         color: transparent;
         position: relative;
     }
     div[data-testid="stFileUploader"] button::after {
-        content: "Buscar archivos";
+        content: "Buscar archivo";
         color: inherit;
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
         white-space: nowrap;
     }
+
+    /* ── Botón Procesar ── */
     div.stButton > button {
         background-color: #2e8b57;
-        color: #ffffff;
-        border: 1px solid #2e8b57;
-        padding: 0.45rem 1rem;
-        font-weight: 600;
+        color: #ffffff !important;
+        border: none;
+        padding: 0.55rem 2rem;
+        font-weight: 700;
+        font-size: 1rem;
         border-radius: 0.5rem;
+        width: 100%;
+        margin-top: 0.5rem;
     }
-    div.stButton > button:hover {
-        background-color: #277a4d;
-        border-color: #277a4d;
-    }
-    div.stButton > button:focus {
-        outline: 3px solid rgba(46, 139, 87, 0.35);
-        outline-offset: 2px;
+    div.stButton > button:hover { background-color: #257a4a; }
+    div.stButton > button:focus { outline: 3px solid rgba(46,139,87,0.4); outline-offset: 2px; }
+
+    /* ── Responsivo: en pantallas pequeñas apilar columnas ── */
+    @media (max-width: 768px) {
+        [data-testid="column"] { min-width: 100% !important; }
+        div.stButton > button { font-size: 0.95rem; }
     }
     </style>
     """,
@@ -421,54 +415,57 @@ def build_output(
 
 st.title(f"Generador de CSV — {NOMBRE_ESCUELA_OU}")
 
-col_left, col_right = st.columns([1, 1])
+col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
-    st.subheader("Archivos")
-    google_file = st.file_uploader("Consola de GOOGLE (CSV de usuarios)", type=["csv"], key="google")
-    sige_file = st.file_uploader("Archivo SIGE (HTML .xls)", type=["xls", "xlsx", "html"], key="sige")
+    st.subheader("① Archivos")
+    google_file = st.file_uploader("Consola de Google (CSV de usuarios)", type=["csv"], key="google")
+    sige_file = st.file_uploader("Nómina SIGE (HTML / .xls)", type=["xls", "xlsx", "html"], key="sige")
 
 with col_right:
-    st.subheader("Configuración")
+    st.subheader("② Configuración")
 
-    escuela_input = st.text_input("Unidad educativa en la OU", value=NOMBRE_ESCUELA_OU, placeholder="Ej: E-89 ESCUELA OTRA")
-    st.caption("/ESCUELAS/**tu texto**/2026 Estudiantes/1A")
+    escuela_input = st.text_input(
+        "Unidad educativa en la OU",
+        value=NOMBRE_ESCUELA_OU,
+        placeholder="Ej: E-89 ESCUELA OTRA",
+        help="/ESCUELAS/[tu texto]/2026 Estudiantes/1A",
+    )
 
     c1, c2 = st.columns(2)
     with c1:
         domain_input = st.text_input("Dominio de correo", value="", placeholder="Ej: colegio.cl")
     with c2:
-        sufijo_input = st.text_input("Sufijo al RUT (opcional)", value="", placeholder="Ej: e80")
+        sufijo_input = st.text_input("Sufijo RUT (opcional)", value="", placeholder="Ej: e80", help="12345678e80@dominio.cl")
 
-    incluir_dv_input = st.checkbox("Incluir DV en el correo")
-    st.caption("Formato: RUT + DV (si activo) + Sufijo (si hay) @ dominio")
+    incluir_dv_input = st.checkbox("Incluir DV en el correo", help="12345678k@dominio.cl")
 
     st.divider()
-
-    c_pw1, c_pw2 = st.columns([2, 3])
-    with c_pw1:
-        modo_password_input = st.radio(
-            "Contraseña",
-            ["Fecha de nacimiento", "Columna del SIGE", "Texto fijo"],
-        )
-    with c_pw2:
-        col_password_input = ""
-        password_fija_input = ""
-        if modo_password_input == "Columna del SIGE":
-            if sige_file:
-                try:
-                    _cols = list(read_sige(sige_file.getvalue()).columns)
-                    col_password_input = st.selectbox("Columna del SIGE", _cols)
-                except Exception:
-                    col_password_input = st.text_input("Nombre columna SIGE", value="Run")
-            else:
-                st.info("Sube el SIGE para ver las columnas.")
-        elif modo_password_input == "Texto fijo":
-            password_fija_input = st.text_input("Contraseña para todos", value="", placeholder="Ej: Escuelita87654321")
+    st.caption("**Contraseña**")
+    modo_password_input = st.radio(
+        "Origen",
+        ["Fecha de nacimiento", "Columna del SIGE", "Texto fijo"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    col_password_input = ""
+    password_fija_input = ""
+    if modo_password_input == "Columna del SIGE":
+        if sige_file:
+            try:
+                _cols = list(read_sige(sige_file.getvalue()).columns)
+                col_password_input = st.selectbox("Columna del SIGE", _cols)
+            except Exception:
+                col_password_input = st.text_input("Nombre columna SIGE", value="Run")
         else:
-            st.caption("Fecha de nacimiento de cada estudiante (dd-mm-yyyy).")
+            st.info("Sube el SIGE primero para ver sus columnas.")
+    elif modo_password_input == "Texto fijo":
+        password_fija_input = st.text_input("Contraseña para todos", value="", placeholder="Ej: Escuelita87654321")
+    else:
+        st.caption("Se usará la fecha de nacimiento (dd-mm-yyyy).")
 
-process = st.button("Procesar")
+    st.divider()
+    process = st.button("Procesar", use_container_width=True)
 
 if process:
     if not google_file or not sige_file:
